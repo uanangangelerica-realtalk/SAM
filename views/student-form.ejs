@@ -1,0 +1,33 @@
+<%- include('shell-start') %>
+<div class="page-heading"><div><a class="back-link" href="<%= student.id ? `/students/${student.id}` : '/students' %>"><i data-lucide="arrow-left"></i> <%= student.id ? 'Back to profile' : 'Student records' %></a><span class="eyebrow">STUDENT DIRECTORY</span><h1><%= student.id ? 'Edit student' : 'Add a student' %></h1><p><%= student.id ? 'Update this student’s personal and academic information.' : 'Create a complete record for a new student.' %></p></div></div>
+<% if (errors.length) { %><div class="form-errors" role="alert"><i data-lucide="circle-alert"></i><div><strong>Please review these details</strong><ul><% errors.forEach((error) => { %><li><%= error %></li><% }) %></ul></div></div><% } %>
+<form class="panel student-form" action="<%= student.id ? `/students/${student.id}/edit` : '/students' %>" method="post">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <fieldset class="form-section"><legend><span class="section-icon icon-blue"><i data-lucide="user-round"></i></span><span><strong>Personal information</strong><small>Basic identity and personal details</small></span></legend>
+    <div class="form-grid">
+      <label class="field"><span>Student ID <b>*</b></span><input name="student_id" required maxlength="40" value="<%= student.student_id || '' %>" placeholder="e.g. 2025-00124"></label>
+      <label class="field"><span>Gender <b>*</b></span><select name="gender" required><option value="">Select gender</option><% ['Female','Male','Non-binary','Prefer not to say'].forEach((v) => { %><option <%= student.gender === v ? 'selected' : '' %>><%= v %></option><% }) %></select></label>
+      <label class="field"><span>First name <b>*</b></span><input name="first_name" required maxlength="80" value="<%= student.first_name || '' %>" placeholder="First name"></label>
+      <label class="field"><span>Middle name</span><input name="middle_name" maxlength="80" value="<%= student.middle_name || '' %>" placeholder="Middle name"></label>
+      <label class="field"><span>Last name <b>*</b></span><input name="last_name" required maxlength="80" value="<%= student.last_name || '' %>" placeholder="Last name"></label>
+      <label class="field"><span>Date of birth</span><input type="date" name="date_of_birth" value="<%= dateValue(student.date_of_birth) %>"></label>
+    </div>
+  </fieldset>
+  <fieldset class="form-section"><legend><span class="section-icon icon-sky"><i data-lucide="contact"></i></span><span><strong>Contact information</strong><small>How to reach this student</small></span></legend>
+    <div class="form-grid">
+      <label class="field"><span>Email address <b>*</b></span><input type="email" name="email" required maxlength="254" value="<%= student.email || '' %>" placeholder="student@university.edu"></label>
+      <label class="field"><span>Contact number</span><input type="tel" name="phone" maxlength="40" value="<%= student.phone || '' %>" placeholder="+1 (555) 000-0000"></label>
+      <label class="field field-span"><span>Home address</span><textarea name="address" rows="2" placeholder="Street address, city, postal code"><%= student.address || '' %></textarea></label>
+    </div>
+  </fieldset>
+  <fieldset class="form-section"><legend><span class="section-icon icon-violet"><i data-lucide="book-open"></i></span><span><strong>Academic information</strong><small>Program and enrollment details</small></span></legend>
+    <div class="form-grid">
+      <label class="field"><span>Course</span><select name="course_id"><option value="">Unassigned</option><% courses.forEach((course) => { %><option value="<%= course.id %>" <%= String(course.id) === String(student.course_id || '') ? 'selected' : '' %>><%= course.name %> · <%= course.code %></option><% }) %></select></label>
+      <label class="field"><span>Year level <b>*</b></span><select name="year_level" required><option value="">Select year level</option><% ['1st Year','2nd Year','3rd Year','4th Year','5th Year'].forEach((v) => { %><option <%= student.year_level === v ? 'selected' : '' %>><%= v %></option><% }) %></select></label>
+      <label class="field"><span>Section</span><input name="section" maxlength="40" value="<%= student.section || '' %>" placeholder="e.g. A"></label>
+      <label class="field"><span>Enrollment date <b>*</b></span><input type="date" name="enrollment_date" required value="<%= dateValue(student.enrollment_date) %>"></label>
+    </div>
+  </fieldset>
+  <div class="form-actions"><span><i data-lucide="lock-keyhole"></i> Student data is securely stored.</span><div><a href="<%= student.id ? `/students/${student.id}` : '/students' %>" class="button button-quiet">Cancel</a><button type="submit" class="button button-primary"><i data-lucide="check"></i> <%= student.id ? 'Save changes' : 'Save student' %></button></div></div>
+</form>
+<%- include('shell-end') %>

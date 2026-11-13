@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> · Campus</title>
+  <link rel="stylesheet" href="/styles.css?v=1">
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
+  <script src="/app.js?v=1" defer></script>
+</head>
+<body class="error-page">
+  <main class="error-card">
+    <span class="empty-icon"><i data-lucide="circle-alert"></i></span>
+    <span class="eyebrow">CAMPUS STUDENT SERVICES</span>
+    <h1><%= title %></h1>
+    <p><%= message %></p>
+    <a class="button button-primary" href="<%= user ? '/' : '/login' %>"><i data-lucide="arrow-left"></i> Back to Campus</a>
+    <button class="icon-button theme-toggle" type="button" aria-label="Toggle dark mode" data-theme-toggle><i data-lucide="moon"></i></button>
+  </main>
+</body>
+</html>

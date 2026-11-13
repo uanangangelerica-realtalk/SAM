@@ -1,0 +1,15 @@
+<%- include('shell-start') %>
+<div class="page-heading"><div><span class="eyebrow">INSIGHTS</span><h1>Reports & analytics</h1><p>Understand enrollment using your current student records.</p></div><div class="heading-actions"><a class="button button-secondary" href="/reports/export.csv"><i data-lucide="download"></i> Export CSV</a><button class="button button-primary" type="button" data-print><i data-lucide="printer"></i> Print report</button></div></div>
+<section class="stats-grid report-stats">
+  <article class="stat-card"><div class="stat-top"><span>Total enrollment</span><span class="stat-icon icon-blue"><i data-lucide="users-round"></i></span></div><strong class="stat-value"><%= summary.total %></strong><small>Registered students</small></article>
+  <article class="stat-card"><div class="stat-top"><span>Male students</span><span class="stat-icon icon-sky"><i data-lucide="user-round"></i></span></div><strong class="stat-value"><%= summary.male %></strong><small>Current records</small></article>
+  <article class="stat-card"><div class="stat-top"><span>Female students</span><span class="stat-icon icon-violet"><i data-lucide="user-round"></i></span></div><strong class="stat-value"><%= summary.female %></strong><small>Current records</small></article>
+  <article class="stat-card"><div class="stat-top"><span>Total courses</span><span class="stat-icon icon-green"><i data-lucide="library-big"></i></span></div><strong class="stat-value"><%= summary.courses %></strong><small>Academic programs</small></article>
+</section>
+<section class="chart-grid report-charts">
+  <article class="panel chart-panel chart-wide"><div class="panel-heading"><div><h3>Enrollment over time</h3><p>New student records by month · last 12 months</p></div></div><div class="chart-wrap chart-wrap-tall"><canvas data-chart="enrollment" data-series="<%= JSON.stringify(chartData.enrollment) %>" aria-label="Enrollment statistics"></canvas></div></article>
+  <article class="panel chart-panel"><div class="panel-heading"><div><h3>Gender distribution</h3><p>Student records by gender</p></div></div><div class="chart-wrap"><canvas data-chart="gender" data-series="<%= JSON.stringify(chartData.gender) %>" aria-label="Gender distribution"></canvas></div></article>
+  <article class="panel chart-panel"><div class="panel-heading"><div><h3>Students by year</h3><p>Current academic year levels</p></div></div><div class="chart-wrap"><canvas data-chart="levels" data-series="<%= JSON.stringify(chartData.levels) %>" aria-label="Students by year level"></canvas></div></article>
+  <article class="panel chart-panel chart-wide"><div class="panel-heading"><div><h3>Course enrollment</h3><p>Students enrolled per program</p></div></div><div class="chart-wrap chart-wrap-tall"><canvas data-chart="courses" data-series="<%= JSON.stringify(chartData.courses) %>" aria-label="Students per course"></canvas></div></article>
+</section>
+<%- include('shell-end') %>

@@ -1,0 +1,29 @@
+<%- include('shell-start') %>
+<div class="page-heading"><div><span class="eyebrow">DIRECTORY</span><h1>Student records</h1><p>Manage, organize, and monitor all registered students.</p></div><a class="button button-primary" href="/students/new"><i data-lucide="plus"></i> Add student</a></div>
+<section class="panel records-panel">
+  <form class="filter-bar" action="/students" method="get">
+    <label class="search-field"><i data-lucide="search"></i><input name="q" value="<%= filters.q %>" placeholder="Search name, ID, or email" aria-label="Search students"><kbd>⌕</kbd></label>
+    <select class="select-control" name="course" aria-label="Filter by course"><option value="">All courses</option><% courses.forEach((course) => { %><option value="<%= course.id %>" <%= String(course.id) === filters.course ? 'selected' : '' %>><%= course.name %></option><% }) %></select>
+    <select class="select-control" name="level" aria-label="Filter by year level"><option value="">All year levels</option><% ['1st Year','2nd Year','3rd Year','4th Year','5th Year'].forEach((level) => { %><option <%= level === filters.level ? 'selected' : '' %>><%= level %></option><% }) %></select>
+    <select class="select-control" name="gender" aria-label="Filter by gender"><option value="">All genders</option><% ['Female','Male','Non-binary','Prefer not to say'].forEach((gender) => { %><option <%= gender === filters.gender ? 'selected' : '' %>><%= gender %></option><% }) %></select>
+    <button class="button button-filter" type="submit">Filter</button><a class="clear-link" href="/students">Clear</a>
+  </form>
+  <div class="table-scroll"><table class="data-table">
+    <thead><tr><th>STUDENT</th><th>STUDENT ID</th><th>COURSE</th><th>YEAR LEVEL</th><th>GENDER</th><th><span class="sr-only">Actions</span></th></tr></thead>
+    <tbody>
+      <% if (students.length) { students.forEach((student) => { %>
+        <tr>
+          <td><a class="student-cell" href="/students/<%= student.id %>"><span class="avatar avatar-student tone-<%= Math.abs(student.first_name.charCodeAt(0)) % 5 %>"><%= student.first_name.slice(0, 1) %><%= student.last_name.slice(0, 1) %></span><span><strong><%= student.first_name %> <%= student.last_name %></strong><small><%= student.email %></small></span></a></td>
+          <td><span class="id-badge"><%= student.student_id %></span></td><td><%= student.course_name || '—' %></td><td><span class="soft-badge"><%= student.year_level || '—' %></span></td><td><%= student.gender %></td>
+          <td><details class="action-menu"><summary aria-label="Student actions"><i data-lucide="ellipsis"></i></summary><div class="action-popover"><a href="/students/<%= student.id %>">View profile</a><a href="/students/<%= student.id %>/edit">Edit student</a><form action="/students/<%= student.id %>/delete" method="post" data-confirm-delete><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit">Delete student</button></form></div></details></td>
+        </tr>
+      <% }); } else { %>
+        <tr><td colspan="6"><div class="empty-state"><span class="empty-icon"><i data-lucide="users-round"></i></span><h3>No students found</h3><p>Try changing your filters or add your first student record.</p><a class="button button-primary" href="/students/new"><i data-lucide="plus"></i> Add student</a></div></td></tr>
+      <% } %>
+    </tbody>
+  </table></div>
+  <footer class="table-footer"><span>Showing <strong><%= students.length ? (pagination.page - 1) * pagination.limit + 1 : 0 %>–<%= Math.min(pagination.page * pagination.limit, pagination.total) %></strong> of <strong><%= pagination.total %></strong> students</span>
+    <div class="pagination"><a class="<%= pagination.page <= 1 ? 'disabled' : '' %>" href="?q=<%= encodeURIComponent(filters.q) %>&course=<%= filters.course %>&level=<%= encodeURIComponent(filters.level) %>&gender=<%= encodeURIComponent(filters.gender) %>&page=<%= Math.max(1, pagination.page - 1) %>" aria-label="Previous page" <%= pagination.page <= 1 ? 'aria-disabled="true" tabindex="-1"' : '' %>><i data-lucide="chevron-left"></i></a><span>Page <%= pagination.page %> of <%= pagination.pages %></span><a class="<%= pagination.page >= pagination.pages ? 'disabled' : '' %>" href="?q=<%= encodeURIComponent(filters.q) %>&course=<%= filters.course %>&level=<%= encodeURIComponent(filters.level) %>&gender=<%= encodeURIComponent(filters.gender) %>&page=<%= Math.min(pagination.pages, pagination.page + 1) %>" aria-label="Next page" <%= pagination.page >= pagination.pages ? 'aria-disabled="true" tabindex="-1"' : '' %>><i data-lucide="chevron-right"></i></a></div>
+  </footer>
+</section>
+<%- include('shell-end') %>

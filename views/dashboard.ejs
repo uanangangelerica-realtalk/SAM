@@ -1,0 +1,26 @@
+<%- include('shell-start') %>
+<section class="welcome-banner">
+  <div class="welcome-copy">
+    <span class="eyebrow"><span class="status-dot"></span> YOUR CAMPUS, AT A GLANCE</span>
+    <h1>Good day, Administrator <span class="wave">✦</span></h1>
+    <p>Here’s an overview of your student community.</p>
+  </div>
+  <a href="/students/new" class="button button-light"><i data-lucide="plus"></i> Add a student</a>
+  <div class="welcome-orb"></div>
+</section>
+<div class="section-heading"><div><h2>Student overview</h2><p>Live totals from your records</p></div><a class="text-link" href="/reports">View reports <i data-lucide="arrow-up-right"></i></a></div>
+<section class="stats-grid">
+  <article class="stat-card"><div class="stat-top"><span>Total students</span><span class="stat-icon icon-blue"><i data-lucide="users-round"></i></span></div><strong class="stat-value"><%= stats.total %></strong><small>Registered student records</small></article>
+  <article class="stat-card"><div class="stat-top"><span>Male students</span><span class="stat-icon icon-sky"><i data-lucide="user-round"></i></span></div><strong class="stat-value"><%= stats.male %></strong><small>Across all year levels</small></article>
+  <article class="stat-card"><div class="stat-top"><span>Female students</span><span class="stat-icon icon-violet"><i data-lucide="user-round"></i></span></div><strong class="stat-value"><%= stats.female %></strong><small>Across all year levels</small></article>
+  <article class="stat-card"><div class="stat-top"><span>Courses</span><span class="stat-icon icon-green"><i data-lucide="book-open-check"></i></span></div><strong class="stat-value"><%= stats.courses %></strong><small>Academic programs</small></article>
+</section>
+<div class="section-heading section-heading-spaced"><div><h2>Enrollment insights</h2><p>Patterns across your current student records</p></div></div>
+<section class="chart-grid">
+  <article class="panel chart-panel chart-wide"><div class="panel-heading"><div><h3>Enrollment activity</h3><p>New students by month · last 6 months</p></div><span class="chart-badge"><i data-lucide="calendar-days"></i> Monthly</span></div><div class="chart-wrap chart-wrap-tall"><canvas data-chart="enrollment" data-series="<%= JSON.stringify(chartData.enrollment) %>" aria-label="Monthly student enrollment chart"></canvas></div></article>
+  <article class="panel chart-panel"><div class="panel-heading"><div><h3>Gender distribution</h3><p>Students by gender</p></div></div><div class="chart-wrap"><canvas data-chart="gender" data-series="<%= JSON.stringify(chartData.gender) %>" aria-label="Gender distribution chart"></canvas></div></article>
+  <article class="panel chart-panel"><div class="panel-heading"><div><h3>Year-level distribution</h3><p>Students by year level</p></div></div><div class="chart-wrap"><canvas data-chart="levels" data-series="<%= JSON.stringify(chartData.levels) %>" aria-label="Year-level distribution chart"></canvas></div></article>
+  <article class="panel chart-panel chart-wide"><div class="panel-heading"><div><h3>Students by course</h3><p>Enrollment across your academic programs</p></div><a class="text-link" href="/courses">Manage courses <i data-lucide="arrow-up-right"></i></a></div><div class="chart-wrap chart-wrap-tall"><canvas data-chart="courses" data-series="<%= JSON.stringify(chartData.courses) %>" aria-label="Students by course chart"></canvas></div></article>
+</section>
+<section class="quick-link-row"><div><span class="quick-icon"><i data-lucide="contact-round"></i></span><span><strong>Keep records up to date</strong><small>Review your student directory and make changes.</small></span></div><a href="/students" class="button button-secondary">Browse students <i data-lucide="arrow-right"></i></a></section>
+<%- include('shell-end') %>

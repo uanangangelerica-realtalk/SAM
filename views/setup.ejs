@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Set up Campus</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css?v=1">
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
+  <script src="/app.js?v=1" defer></script>
+</head>
+<body class="auth-page">
+<main class="auth-shell">
+  <section class="auth-art">
+    <a class="brand brand-light" href="/"><span class="brand-mark"><i data-lucide="graduation-cap"></i></span><span class="brand-copy"><strong>campus</strong><small>STUDENT SERVICES</small></span></a>
+    <div class="art-copy">
+      <span class="eyebrow">YOUR CAMPUS STARTS HERE</span>
+      <h1>A calmer way to<br>care for every record.</h1>
+      <p>Create your secure administrator account to get your student workspace ready.</p>
+      <div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div><div class="art-dots"></div>
+    </div>
+    <div class="auth-art-footer"><span>Thoughtful tools for thriving communities.</span><span>Secure · Focused · Connected</span></div>
+  </section>
+  <section class="auth-form-side">
+    <div class="auth-mobile-brand"><span class="brand-mark"><i data-lucide="graduation-cap"></i></span><strong>campus</strong></div>
+    <div class="auth-card">
+      <span class="eyebrow">FIRST-TIME SETUP</span>
+      <h2>Make it yours.</h2>
+      <p class="auth-subtitle">Create the administrator account for this workspace.</p>
+      <% if (error) { %>
+        <div class="auth-error" role="alert"><i data-lucide="circle-alert"></i><span><%= error %></span></div>
+      <% } %>
+      <form action="/setup" method="post" class="auth-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <label class="field">
+          <span>Administrator username</span>
+          <div class="input-with-icon"><i data-lucide="user-round"></i><input name="username" required minlength="3" maxlength="48" autocomplete="username" placeholder="Choose a username"></div>
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <div class="input-with-icon">
+            <i data-lucide="lock-keyhole"></i>
+            <input id="login-password" name="password" type="password" required minlength="12" autocomplete="new-password" placeholder="At least 12 characters">
+            <button class="password-toggle" type="button" data-password-toggle aria-label="Show password"><i data-lucide="eye"></i></button>
+          </div>
+          <small>Use at least 12 characters.</small>
+        </label>
+        <button class="button button-primary auth-submit" type="submit"><span>Create administrator account</span><i data-lucide="arrow-right"></i></button>
+      </form>
+      <div class="auth-security"><i data-lucide="shield-check"></i><span>Setup closes automatically after the first account is created.</span></div>
+    </div>
+    <footer class="auth-footer">
+      <span>Campus Student Services</span>
+      <button class="icon-button theme-toggle" type="button" aria-label="Toggle dark mode" data-theme-toggle><i data-lucide="moon"></i></button>
+    </footer>
+  </section>
+</main>
+</body>
+</html>
