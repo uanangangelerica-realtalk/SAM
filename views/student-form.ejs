@@ -11,10 +11,10 @@
         <span class="avatar avatar-photo-placeholder" data-photo-placeholder <%= photoSource ? 'hidden' : '' %>><%= student.first_name ? student.first_name.slice(0, 1) : 'S' %><%= student.last_name ? student.last_name.slice(0, 1) : '' %></span>
       </div>
       <div class="photo-copy">
-        <strong>Student profile photo</strong>
-        <p>Use a clear headshot so this student is easy to recognize.</p>
-        <label class="button button-secondary photo-choose"><i data-lucide="upload"></i> Choose photo<input type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp" data-photo-input aria-describedby="photo-guidance"></label>
-        <small id="photo-guidance">JPG, PNG, or WebP · up to 2 MB. Photos are securely stored with student records.</small>
+        <strong>Profile photo</strong>
+        <p>Add a clear headshot to make this student easier to identify.</p>
+        <small id="photo-guidance">JPG, PNG, or WebP · up to 2 MB</small>
+        <label class="button button-secondary photo-choose"><i data-lucide="upload"></i> <%= photoSource ? 'Change photo' : 'Upload photo' %><input class="photo-input" type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp" data-photo-input aria-describedby="photo-guidance"></label>
         <% if (profilePhotoPreview) { %><small class="photo-reselect">For your privacy, select the photo again before saving this form.</small><% } %>
         <% if (student.id && student.has_profile_photo) { %><label class="photo-remove"><input type="checkbox" name="remove_profile_photo" value="1" data-photo-remove> Remove current profile photo</label><% } %>
       </div>
