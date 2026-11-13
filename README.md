@@ -49,9 +49,11 @@ The database schema is created when the server starts. Back up the PostgreSQL da
 
 ## Render
 
-The included `render.yaml` describes a Node web service and PostgreSQL database. Connect the repository to Render and deploy the blueprint; Render will create `DATABASE_URL` and a random `SESSION_SECRET`. The application initializes its schema on startup.
+The included `render.yaml` describes a free Node web service. It does not create a Render PostgreSQL database, because Render's free databases expire after 30 days. The Blueprint asks for `DATABASE_URL`; provide a connection string from a free external PostgreSQL provider such as Neon. The Blueprint generates a random `SESSION_SECRET`, and the application initializes its schema on startup.
 
-Set `DATABASE_SSL=true` only when your PostgreSQL provider requires TLS. Keep `SESSION_SECRET` private and use a strong unique value in every production environment.
+For Neon, create a Free project without adding a payment method and use its pooled connection string. Keep the connection string private and enter it directly in Render as the `DATABASE_URL` Blueprint variable; never commit it or share it in chat. `DATABASE_SSL=true` is enabled for the hosted database connection.
+
+Free hosting has limitations: Render may spin down the web service after 15 minutes without traffic, making the next request take about a minute to start. Free-tier services have resource and usage limits and are not intended for production workloads. Review your database provider's limits and arrange regular backups before storing important student records.
 
 ## Checks
 
