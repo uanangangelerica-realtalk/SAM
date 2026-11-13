@@ -54,6 +54,49 @@
       applyIcons();
     }));
 
+    const photoEditor = document.querySelector('[data-photo-editor]');
+    if (photoEditor) {
+      const input = photoEditor.querySelector('[data-photo-input]');
+      const preview = photoEditor.querySelector('[data-photo-preview]');
+      const placeholder = photoEditor.querySelector('[data-photo-placeholder]');
+      const removePhoto = photoEditor.querySelector('[data-photo-remove]');
+      const savedPhoto = preview.getAttribute('src');
+      let previewUrl = null;
+      const showPhoto = (source) => {
+        preview.hidden = !source;
+        placeholder.hidden = Boolean(source);
+        if (source) preview.src = source;
+        else preview.removeAttribute('src');
+      };
+      input.addEventListener('change', () => {
+        const file = input.files?.[0];
+        input.setCustomValidity('');
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) {
+          input.setCustomValidity('Choose a photo smaller than 2 MB.');
+          input.reportValidity();
+          input.value = '';
+          input.setCustomValidity('');
+          return;
+        }
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        previewUrl = URL.createObjectURL(file);
+        showPhoto(previewUrl);
+        if (removePhoto) removePhoto.checked = false;
+      });
+      removePhoto?.addEventListener('change', () => {
+        if (removePhoto.checked) {
+          input.value = '';
+          showPhoto(null);
+        } else if (savedPhoto) {
+          showPhoto(savedPhoto);
+        }
+      });
+      window.addEventListener('pagehide', () => {
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+      }, { once: true });
+    }
+
     const dialog = document.querySelector('#confirm-dialog');
     let pendingForm = null;
     document.querySelectorAll('[data-confirm-delete]').forEach((form) => form.addEventListener('submit', (event) => {

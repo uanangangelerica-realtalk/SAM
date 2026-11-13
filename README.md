@@ -40,12 +40,13 @@ Requirements: Node.js 20+ and Docker Desktop (or a PostgreSQL 14+ server).
 
 - One-time administrator setup, password hashing, authenticated sessions, CSRF protection, and password updates.
 - Student create, view, edit, delete, search, filters, and pagination.
+- Student profile-photo upload with an instant preview, automatic square WebP resizing, and database-backed storage. JPG, PNG, and WebP files up to 2 MB are accepted; administrators can replace or remove a photo.
 - Course management with safeguards for courses linked to students.
 - Live enrollment, gender, course, and year-level charts; printable reports and CSV export.
 - Responsive layouts, keyboard-friendly controls, and a persisted light/dark theme.
 - PostgreSQL-backed student records and sessions. No sample student data or fabricated analytics are inserted.
 
-The database schema is created when the server starts. Back up the PostgreSQL database before upgrades or operational changes.
+The database schema is created when the server starts. Student photos are stored in PostgreSQL so they persist across Render restarts and deploys; include them in database backups and apply the same access protections as other student information.
 
 ## Render
 

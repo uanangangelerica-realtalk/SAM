@@ -13,7 +13,7 @@
     <tbody>
       <% if (students.length) { students.forEach((student) => { %>
         <tr>
-          <td><a class="student-cell" href="/students/<%= student.id %>"><span class="avatar avatar-student tone-<%= Math.abs(student.first_name.charCodeAt(0)) % 5 %>"><%= student.first_name.slice(0, 1) %><%= student.last_name.slice(0, 1) %></span><span><strong><%= student.first_name %> <%= student.last_name %></strong><small><%= student.email %></small></span></a></td>
+          <td><a class="student-cell" href="/students/<%= student.id %>"><span class="avatar avatar-student tone-<%= Math.abs(student.first_name.charCodeAt(0)) % 5 %>"><% if (student.has_profile_photo) { %><img class="avatar-image" src="/students/<%= student.id %>/photo" alt="" aria-hidden="true"><% } else { %><%= student.first_name.slice(0, 1) %><%= student.last_name.slice(0, 1) %><% } %></span><span><strong><%= student.first_name %> <%= student.last_name %></strong><small><%= student.email %></small></span></a></td>
           <td><span class="id-badge"><%= student.student_id %></span></td><td><%= student.course_name || '—' %></td><td><span class="soft-badge"><%= student.year_level || '—' %></span></td><td><%= student.gender %></td>
           <td><details class="action-menu"><summary aria-label="Student actions"><i data-lucide="ellipsis"></i></summary><div class="action-popover"><a href="/students/<%= student.id %>">View profile</a><a href="/students/<%= student.id %>/edit">Edit student</a><form action="/students/<%= student.id %>/delete" method="post" data-confirm-delete><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit">Delete student</button></form></div></details></td>
         </tr>

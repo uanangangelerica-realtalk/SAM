@@ -1,9 +1,24 @@
 <%- include('shell-start') %>
 <div class="page-heading"><div><a class="back-link" href="<%= student.id ? `/students/${student.id}` : '/students' %>"><i data-lucide="arrow-left"></i> <%= student.id ? 'Back to profile' : 'Student records' %></a><span class="eyebrow">STUDENT DIRECTORY</span><h1><%= student.id ? 'Edit student' : 'Add a student' %></h1><p><%= student.id ? 'Update this student’s personal and academic information.' : 'Create a complete record for a new student.' %></p></div></div>
 <% if (errors.length) { %><div class="form-errors" role="alert"><i data-lucide="circle-alert"></i><div><strong>Please review these details</strong><ul><% errors.forEach((error) => { %><li><%= error %></li><% }) %></ul></div></div><% } %>
-<form class="panel student-form" action="<%= student.id ? `/students/${student.id}/edit` : '/students' %>" method="post">
+<form class="panel student-form" action="<%= student.id ? `/students/${student.id}/edit` : '/students' %>" method="post" enctype="multipart/form-data">
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <fieldset class="form-section"><legend><span class="section-icon icon-blue"><i data-lucide="user-round"></i></span><span><strong>Personal information</strong><small>Basic identity and personal details</small></span></legend>
+    <% const photoSource = profilePhotoPreview || (student.has_profile_photo ? `/students/${student.id}/photo` : null); %>
+    <div class="photo-editor" data-photo-editor>
+      <div class="photo-preview">
+        <img data-photo-preview alt="Student profile photo preview" src="<%= photoSource || '' %>" <%= photoSource ? '' : 'hidden' %>>
+        <span class="avatar avatar-photo-placeholder" data-photo-placeholder <%= photoSource ? 'hidden' : '' %>><%= student.first_name ? student.first_name.slice(0, 1) : 'S' %><%= student.last_name ? student.last_name.slice(0, 1) : '' %></span>
+      </div>
+      <div class="photo-copy">
+        <strong>Student profile photo</strong>
+        <p>Use a clear headshot so this student is easy to recognize.</p>
+        <label class="button button-secondary photo-choose"><i data-lucide="upload"></i> Choose photo<input type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp" data-photo-input aria-describedby="photo-guidance"></label>
+        <small id="photo-guidance">JPG, PNG, or WebP · up to 2 MB. Photos are securely stored with student records.</small>
+        <% if (profilePhotoPreview) { %><small class="photo-reselect">For your privacy, select the photo again before saving this form.</small><% } %>
+        <% if (student.id && student.has_profile_photo) { %><label class="photo-remove"><input type="checkbox" name="remove_profile_photo" value="1" data-photo-remove> Remove current profile photo</label><% } %>
+      </div>
+    </div>
     <div class="form-grid">
       <label class="field"><span>Student ID <b>*</b></span><input name="student_id" required maxlength="40" value="<%= student.student_id || '' %>" placeholder="e.g. 2025-00124"></label>
       <label class="field"><span>Gender <b>*</b></span><select name="gender" required><option value="">Select gender</option><% ['Female','Male','Non-binary','Prefer not to say'].forEach((v) => { %><option <%= student.gender === v ? 'selected' : '' %>><%= v %></option><% }) %></select></label>

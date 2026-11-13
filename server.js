@@ -8,6 +8,8 @@ const bcrypt = require('bcryptjs');
 const helmet = require('helmet');
 const { rateLimit } = require('express-rate-limit');
 const { Pool } = require('pg');
+const multer = require('multer');
+const sharp = require('sharp');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -49,6 +51,14 @@ function createApp(options = {}) {
   const store = options.sessionStore || (options.pool
     ? new session.MemoryStore()
     : new PgSession({ pool: db, tableName: 'user_sessions', createTableIfMissing: true }));
+  const uploadStudentPhoto = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 2 * 1024 * 1024, files: 1, fields: 24, fieldSize: 20 * 1024, parts: 26 },
+    fileFilter: (_req, file, callback) => {
+      if (['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) return callback(null, true);
+      callback(new multer.MulterError('LIMIT_UNEXPECTED_FILE', file.fieldname));
+    }
+  });
   app.use(session({
     name: 'campus.sid',
     secret: process.env.SESSION_SECRET || (process.env.NODE_ENV === 'test' ? 'test-session-secret' : undefined),
@@ -68,6 +78,23 @@ function createApp(options = {}) {
     next();
   });
   app.use((req, res, next) => {
+    if (!req.session.user || req.method !== 'POST' || !(req.path === '/students' || /^\/students\/\d+\/edit$/.test(req.path))) return next();
+    uploadStudentPhoto.single('profile_photo')(req, res, (error) => {
+      if (!error) return next();
+      if (!(error instanceof multer.MulterError)) return next(error);
+      const tooLarge = error.code === 'LIMIT_FILE_SIZE';
+      const unsupportedType = error.code === 'LIMIT_UNEXPECTED_FILE';
+      res.status(tooLarge ? 413 : 400).render('error', {
+        title: 'Profile photo upload failed',
+        message: tooLarge
+          ? 'Choose a photo smaller than 2 MB, then try again.'
+          : unsupportedType
+            ? 'Choose a JPG, PNG, or WebP image for the student profile photo.'
+            : 'The photo upload could not be completed. Please try again.'
+      });
+    });
+  });
+  app.use((req, res, next) => {
     if (req.method === 'POST' && (!req.body._csrf || req.body._csrf !== req.session.csrfToken)) {
       return res.status(403).render('error', { title: 'Request expired', message: 'Please refresh the page and try again.' });
     }
@@ -85,6 +112,10 @@ function createApp(options = {}) {
     skipSuccessfulRequests: true
   });
   const hasAdmin = async () => (await query('SELECT EXISTS (SELECT 1 FROM administrators) AS exists')).rows[0].exists;
+  const renderStudentForm = async (res, { status = 200, title, student, errors, profilePhotoPreview = null }) => {
+    const courses = await query('SELECT id, name, code FROM courses ORDER BY name');
+    return res.status(status).render('student-form', { title, student, courses: courses.rows, errors, profilePhotoPreview });
+  };
   app.param('id', (req, res, next, id) => {
     if (/^\d+$/.test(id) && Number.isSafeInteger(Number(id))) return next();
     res.status(404).render('error', { title: 'Record not found', message: 'This record may have been removed.' });
@@ -189,7 +220,9 @@ function createApp(options = {}) {
     const total = countResult.rows[0].total;
     const page = Math.min(requestedPage, Math.max(1, Math.ceil(total / limit)));
     const rows = await query(
-      `SELECT s.*, c.name AS course_name FROM students s LEFT JOIN courses c ON c.id = s.course_id
+      `SELECT s.id, s.student_id, s.first_name, s.middle_name, s.last_name, s.email, s.gender, s.year_level,
+        s.course_id, (s.profile_photo IS NOT NULL) AS has_profile_photo, c.name AS course_name
+      FROM students s LEFT JOIN courses c ON c.id = s.course_id
       ${where} ORDER BY s.last_name, s.first_name LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
       [...values, limit, (page - 1) * limit]
     );
@@ -202,59 +235,93 @@ function createApp(options = {}) {
   }));
 
   app.get('/students/new', requireAuth, asyncRoute(async (_req, res) => {
-    const courses = await query('SELECT id, name, code FROM courses ORDER BY name');
-    res.render('student-form', { title: 'Add student', student: {}, courses: courses.rows, errors: [] });
+    await renderStudentForm(res, { title: 'Add student', student: {}, errors: [] });
   }));
   app.post('/students', requireAuth, asyncRoute(async (req, res) => {
     const data = studentInput(req.body);
     const errors = validateStudent(data);
-    if (errors.length) {
-      const courses = await query('SELECT id, name, code FROM courses ORDER BY name');
-      return res.status(422).render('student-form', { title: 'Add student', student: data, courses: courses.rows, errors });
+    let profilePhoto = null;
+    try {
+      profilePhoto = await normalizeProfilePhoto(req.file);
+    } catch (error) {
+      if (!(error instanceof InvalidProfilePhotoError)) throw error;
+      errors.push(error.message);
     }
+    const profilePhotoPreview = profilePhoto ? `data:image/webp;base64,${profilePhoto.toString('base64')}` : null;
+    if (errors.length) return renderStudentForm(res, {
+      status: 422, title: 'Add student', student: data, errors, profilePhotoPreview
+    });
     try {
       await query(`INSERT INTO students
-        (student_id, first_name, middle_name, last_name, gender, date_of_birth, email, phone, address, course_id, year_level, section, enrollment_date)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`, studentValues(data));
+        (student_id, first_name, middle_name, last_name, gender, date_of_birth, email, phone, address, course_id, year_level, section, enrollment_date, profile_photo)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`, [...studentValues(data), profilePhoto]);
     } catch (error) {
       if (error.code === '23505') {
-        const courses = await query('SELECT id, name, code FROM courses ORDER BY name');
-        return res.status(409).render('student-form', { title: 'Add student', student: data, courses: courses.rows, errors: ['Student ID or email already exists.'] });
+        return renderStudentForm(res, {
+          status: 409, title: 'Add student', student: data, errors: ['Student ID or email already exists.'], profilePhotoPreview
+        });
       }
       throw error;
     }
     flash(req, 'success', 'Student record added successfully.');
     res.redirect('/students');
   }));
+  app.get('/students/:id/photo', requireAuth, asyncRoute(async (req, res) => {
+    const result = await query('SELECT profile_photo FROM students WHERE id = $1', [req.params.id]);
+    if (!result.rows[0]?.profile_photo) return res.sendStatus(404);
+    res.type('image/webp').set('Cache-Control', 'private, max-age=3600').send(result.rows[0].profile_photo);
+  }));
   app.get('/students/:id', requireAuth, asyncRoute(async (req, res) => {
-    const result = await query('SELECT s.*, c.name AS course_name FROM students s LEFT JOIN courses c ON c.id = s.course_id WHERE s.id = $1', [req.params.id]);
+    const result = await query(`SELECT s.id, s.student_id, s.first_name, s.middle_name, s.last_name, s.gender, s.date_of_birth,
+      s.email, s.phone, s.address, s.course_id, s.year_level, s.section, s.enrollment_date, s.created_at, s.updated_at,
+      (s.profile_photo IS NOT NULL) AS has_profile_photo, c.name AS course_name
+      FROM students s LEFT JOIN courses c ON c.id = s.course_id WHERE s.id = $1`, [req.params.id]);
     if (!result.rows[0]) return res.status(404).render('error', { title: 'Student not found', message: 'This record may have been removed.' });
     res.render('student-profile', { title: result.rows[0].first_name, student: result.rows[0] });
   }));
   app.get('/students/:id/edit', requireAuth, asyncRoute(async (req, res) => {
     const [result, courses] = await Promise.all([
-      query('SELECT * FROM students WHERE id = $1', [req.params.id]),
+      query(`SELECT id, student_id, first_name, middle_name, last_name, gender, date_of_birth, email, phone,
+        address, course_id, year_level, section, enrollment_date, (profile_photo IS NOT NULL) AS has_profile_photo
+        FROM students WHERE id = $1`, [req.params.id]),
       query('SELECT id, name FROM courses ORDER BY name')
     ]);
     if (!result.rows[0]) return res.status(404).render('error', { title: 'Student not found', message: 'This record may have been removed.' });
-    res.render('student-form', { title: 'Edit student', student: result.rows[0], courses: courses.rows, errors: [] });
+    res.render('student-form', { title: 'Edit student', student: result.rows[0], courses: courses.rows, errors: [], profilePhotoPreview: null });
   }));
   app.post('/students/:id/edit', requireAuth, asyncRoute(async (req, res) => {
     const data = studentInput(req.body);
     const errors = validateStudent(data);
-    if (errors.length) {
-      const courses = await query('SELECT id, name, code FROM courses ORDER BY name');
-      return res.status(422).render('student-form', { title: 'Edit student', student: { ...data, id: req.params.id }, courses: courses.rows, errors });
+    let profilePhoto = null;
+    try {
+      profilePhoto = await normalizeProfilePhoto(req.file);
+    } catch (error) {
+      if (!(error instanceof InvalidProfilePhotoError)) throw error;
+      errors.push(error.message);
     }
+    const currentPhoto = await query('SELECT (profile_photo IS NOT NULL) AS has_profile_photo FROM students WHERE id = $1', [req.params.id]);
+    if (!currentPhoto.rowCount) return res.status(404).render('error', { title: 'Student not found', message: 'This record may have been removed.' });
+    const removeProfilePhoto = req.body.remove_profile_photo === '1' && !profilePhoto;
+    const profilePhotoPreview = profilePhoto ? `data:image/webp;base64,${profilePhoto.toString('base64')}` : null;
+    const student = {
+      ...data,
+      id: req.params.id,
+      has_profile_photo: profilePhoto ? true : removeProfilePhoto ? false : currentPhoto.rows[0].has_profile_photo
+    };
+    if (errors.length) return renderStudentForm(res, {
+      status: 422, title: 'Edit student', student, errors, profilePhotoPreview
+    });
     try {
       const result = await query(`UPDATE students SET student_id=$1, first_name=$2, middle_name=$3, last_name=$4, gender=$5,
-        date_of_birth=$6, email=$7, phone=$8, address=$9, course_id=$10, year_level=$11, section=$12, enrollment_date=$13, updated_at=NOW()
-        WHERE id=$14`, [...studentValues(data), req.params.id]);
+        date_of_birth=$6, email=$7, phone=$8, address=$9, course_id=$10, year_level=$11, section=$12, enrollment_date=$13,
+        profile_photo=CASE WHEN $14 THEN NULL ELSE COALESCE($15, profile_photo) END,
+        updated_at=NOW() WHERE id=$16`, [...studentValues(data), removeProfilePhoto, profilePhoto, req.params.id]);
       if (!result.rowCount) return res.status(404).render('error', { title: 'Student not found', message: 'This record may have been removed.' });
     } catch (error) {
       if (error.code === '23505') {
-        const courses = await         query('SELECT id, name, code FROM courses ORDER BY name');
-        return res.status(409).render('student-form', { title: 'Edit student', student: { ...data, id: req.params.id }, courses: courses.rows, errors: ['Student ID or email already exists.'] });
+        return renderStudentForm(res, {
+          status: 409, title: 'Edit student', student, errors: ['Student ID or email already exists.'], profilePhotoPreview
+        });
       }
       throw error;
     }
@@ -394,6 +461,28 @@ function studentValues(student) {
     student.course_id, student.year_level, student.section || null, student.enrollment_date
   ];
 }
+class InvalidProfilePhotoError extends Error {}
+async function normalizeProfilePhoto(file) {
+  if (!file) return null;
+  try {
+    const options = { limitInputPixels: 40_000_000, failOn: 'error' };
+    const metadata = await sharp(file.buffer, options).metadata();
+    if (!['jpeg', 'png', 'webp'].includes(metadata.format)) {
+      throw new InvalidProfilePhotoError('Choose a valid JPG, PNG, or WebP image.');
+    }
+    return await sharp(file.buffer, options)
+      .rotate()
+      .resize(512, 512, { fit: 'cover', position: sharp.strategy.attention, withoutEnlargement: true })
+      .webp({ quality: 82, effort: 4 })
+      .toBuffer();
+  } catch (error) {
+    if (error instanceof InvalidProfilePhotoError) throw error;
+    if (error instanceof Error && /input buffer|unsupported image format|corrupt|pixel limit/i.test(error.message)) {
+      throw new InvalidProfilePhotoError('Choose a valid JPG, PNG, or WebP image.');
+    }
+    throw error;
+  }
+}
 function csvCell(value) {
   let text = value instanceof Date ? value.toISOString().slice(0, 10) : String(value ?? '');
   if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
@@ -446,9 +535,11 @@ async function initializeDatabase(db = pool) {
       year_level VARCHAR(20) NOT NULL,
       section VARCHAR(40),
       enrollment_date DATE NOT NULL,
+      profile_photo BYTEA,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    ALTER TABLE students ADD COLUMN IF NOT EXISTS profile_photo BYTEA;
     CREATE INDEX IF NOT EXISTS students_name_idx ON students (last_name, first_name);
     CREATE INDEX IF NOT EXISTS students_course_idx ON students (course_id);
     CREATE INDEX IF NOT EXISTS students_year_idx ON students (year_level);
@@ -463,4 +554,7 @@ if (require.main === module) {
     .catch((error) => { console.error('Application startup failed:', error); process.exitCode = 1; });
 }
 
-module.exports = { createApp, initializeDatabase, studentInput, dateInputValue, validateStudent, csvCell, monthlyEnrollment, genders, yearLevels };
+module.exports = {
+  createApp, initializeDatabase, studentInput, dateInputValue, validateStudent, normalizeProfilePhoto,
+  csvCell, monthlyEnrollment, genders, yearLevels
+};
